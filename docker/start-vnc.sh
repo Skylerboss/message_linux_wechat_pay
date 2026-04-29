@@ -212,15 +212,15 @@ echo "Starting WeChat client..."
         fi
         
         # 检查微信是否已登录（通过数据库目录）
-        WECHAT_DB_DIR=$(find /root/Documents -type d -path "*/xwechat_files/wxid_*_*/db_storage" 2>/dev/null | head -1)
+        WECHAT_DB_DIR=$(find /root/Documents -type d -name "db_storage" 2>/dev/null | head -1)
+        
         if [ -z "$WECHAT_DB_DIR" ]; then
-            # 尝试其他模式
-            WECHAT_DB_DIR=$(find /root/Documents -type d -name "db_storage" 2>/dev/null | head -1)
-        fi
-        if [ -z "$WECHAT_DB_DIR" ]; then
-            echo "[auto-decrypt] 等待微信登录..."
+            # 列出所有可能的目录
+            echo "[auto-decrypt] 等待微信登录... dirs: $(ls -la /root/Documents/xwechat_files/ 2>/dev/null | head -3)"
             continue
         fi
+        
+        echo "[auto-decrypt] 检测到微信数据库: $WECHAT_DB_DIR"
         
         # 检查是否需要重新解密（密钥文件为空或过旧）
         NEED_DECRYPT=false
