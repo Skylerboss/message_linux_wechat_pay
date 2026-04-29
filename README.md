@@ -29,6 +29,15 @@ wget https://raw.githubusercontent.com/Skylerboss/message_linux_wechat_pay/main/
 bash install.sh
 ```
 
+### 安装位置
+
+- **默认安装目录**: `/root/linux_wechat_pay`
+- 可通过环境变量自定义:
+  ```bash
+  export WECHAT_INSTALL_DIR=/your/custom/path
+  bash install.sh
+  ```
+
 ## 环境要求
 
 - Linux 服务器（推荐 Ubuntu 20.04+）
@@ -172,7 +181,6 @@ docker exec linux-wechat-vnc grep -E 'DETECTED|Callback sent' /tmp/wechat-pay.lo
 
 ## 相关项目
 
-- [Message Bot](https://github.com/Skylerboss/MessageBot) - 消息机器人框架
 - [PMHQ](https://github.com/Skylerboss/message_qq) - QQ 消息网关
 
 ## 许可证
