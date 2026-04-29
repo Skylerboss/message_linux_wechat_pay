@@ -307,7 +307,29 @@ main_menu() {
     done
 }
 
-# 检查是否已安装
+# 非交互模式检测 - 如果没有 stdin 输入，直接执行更新/安装
+if [ ! -t 0 ]; then
+    # 检测 docker compose 命令
+    if command -v docker-compose &> /dev/null; then
+        COMPOSE_CMD="docker-compose"
+    elif docker compose version &> /dev/null; then
+        COMPOSE_CMD="docker compose"
+    fi
+    
+    check_docker
+    pull_image
+    setup_directories
+    create_env_file
+    create_compose_file
+    
+    cd "${INSTALL_DIR}"
+    ${COMPOSE_CMD} up -d
+    save_version "${VERSION}"
+    show_status ${COMPOSE_CMD}
+    exit 0
+fi
+
+# 检查是否已安装 - 交互模式
 if [ -d "${INSTALL_DIR}" ] && [ -f "${INSTALL_DIR}/.version" ]; then
     # 检测 docker compose 命令
     if command -v docker-compose &> /dev/null; then
