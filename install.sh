@@ -309,7 +309,26 @@ main_menu() {
 
 # 检查是否已安装
 if [ -d "${INSTALL_DIR}" ] && [ -f "${INSTALL_DIR}/.version" ]; then
-    main_menu
+    # 如果有命令行参数，直接执行对应操作
+    if [ -n "$1" ]; then
+        case $1 in
+            1|install)
+                check_docker
+                pull_image
+                setup_directories
+                create_env_file
+                create_compose_file
+                start_service ${COMPOSE_CMD}
+                save_version "${VERSION}"
+                show_status ${COMPOSE_CMD}
+                ;;
+            *)
+                echo "用法: bash install.sh [install]"
+                ;;
+        esac
+    else
+        main_menu
+    fi
 else
     # 首次安装
     check_docker
