@@ -172,7 +172,6 @@ docker exec linux-wechat-vnc grep -E 'DETECTED|Callback sent' /tmp/wechat-pay.lo
 
 ## 相关项目
 
-- [Message Bot](https://github.com/Skylerboss/MessageBot) - 消息机器人框架
 - [PMHQ](https://github.com/Skylerboss/message_qq) - QQ 消息网关
 
 ## 许可证
