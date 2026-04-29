@@ -155,22 +155,22 @@ WECHAT_DB_DIR=$(find /root/Documents -type d -path "*/xwechat_files/*/db_storage
 if [ -n "$WECHAT_DB_DIR" ]; then
     echo "Found WeChat database directory: $WECHAT_DB_DIR"
     export WECHAT_DB_DIR
-    export SESSION_DB_PATH="${DECRYPT_PROJECT_DIR:-/root/wechat-decrypt}/decrypted/session/session.db"
+    export SESSION_DB_PATH="${DECRYPT_PROJECT_DIR:-/app/wechat-decrypt}/decrypted/session/session.db"
     
     # 配置 wechat-decrypt
-    if [ -f "${DECRYPT_PROJECT_DIR:-/root/wechat-decrypt}/config.json" ]; then
+    if [ -f "${DECRYPT_PROJECT_DIR:-/app/wechat-decrypt}/config.json" ]; then
         echo "Updating wechat-decrypt config..."
         # 使用 sed 更新 db_dir
-        sed -i "s|\"db_dir\": \".*\"|\"db_dir\": \"$WECHAT_DB_DIR\"|g" "${DECRYPT_PROJECT_DIR:-/root/wechat-decrypt}/config.json"
+        sed -i "s|\"db_dir\": \".*\"|\"db_dir\": \"$WECHAT_DB_DIR\"|g" "${DECRYPT_PROJECT_DIR:-/app/wechat-decrypt}/config.json"
     fi
     
     # 如果微信进程运行中，自动提取密钥和解密
     if pgrep -x wechat > /dev/null; then
         echo "WeChat process detected, extracting database keys..."
-        cd "${DECRYPT_PROJECT_DIR:-/root/wechat-decrypt}" && python3 find_all_keys_linux.py 2>&1 | tail -5
+        cd "${DECRYPT_PROJECT_DIR:-/app/wechat-decrypt}" && python3 find_all_keys_linux.py 2>&1 | tail -5
         
         echo "Decrypting databases..."
-        cd "${DECRYPT_PROJECT_DIR:-/root/wechat-decrypt}" && python3 decrypt_db.py 2>&1 | tail -3
+        cd "${DECRYPT_PROJECT_DIR:-/app/wechat-decrypt}" && python3 decrypt_db.py 2>&1 | tail -3
     else
         echo "WeChat not running, will decrypt after login"
     fi
@@ -193,7 +193,7 @@ echo "Starting WeChat client..."
 # 后台监控：持续检测微信登录状态并自动解密
 # =============================================================================
 (
-    DECRYPT_DIR="${DECRYPT_PROJECT_DIR:-/root/wechat-decrypt}"
+    DECRYPT_DIR="${DECRYPT_PROJECT_DIR:-/app/wechat-decrypt}"
     DECRYPTED_DIR="${DECRYPT_DIR}/decrypted"
     LAST_SCAN_TIME=0
     
@@ -250,7 +250,7 @@ echo "Starting WeChat client..."
                     echo "[auto-decrypt] 数据库解密成功!"
                     
                     # 同时修复 config.yaml 的路径
-                    sed -i 's|/root/wechat-decrypt|/app/wechat-decrypt|g' /app/config.yaml
+                    sed -i 's|/app/wechat-decrypt|/app/wechat-decrypt|g' /app/config.yaml
                     echo "[auto-decrypt] config.yaml 路径已修复"
                 else
                     echo "[auto-decrypt] 解密失败，查看 /tmp/decrypt.log"
