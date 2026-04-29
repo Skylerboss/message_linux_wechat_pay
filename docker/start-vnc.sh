@@ -198,7 +198,10 @@ echo "Starting WeChat client..."
     DECRYPTED_DIR="${DECRYPT_DIR}/decrypted"
     LAST_SCAN_TIME=0
     
-    echo "[auto-decrypt] 后台监控已启动"
+    # 日志输出到文件和控制台
+    exec > >(tee -a /tmp/auto_decrypt.log) 2>&1
+    
+    echo "[auto-decrypt] 后台监控已启动 (PID: $$)"
     
     while true; do
         sleep 10
