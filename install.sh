@@ -136,6 +136,8 @@ services:
     privileged: true
     restart: unless-stopped
     ports:
+      - "5901:5901"
+      - "6080:6080"
       - "8888:8888"
     volumes:
       - ./wechat-decrypt:/root/wechat-decrypt
