@@ -193,7 +193,8 @@ echo "Starting WeChat client..."
 # 后台监控：持续检测微信登录状态并自动解密
 # =============================================================================
 (
-    DECRYPT_DIR="${DECRYPT_PROJECT_DIR:-/app/wechat-decrypt}"
+    # 强制使用正确路径
+    DECRYPT_DIR="/app/wechat-decrypt"
     DECRYPTED_DIR="${DECRYPT_DIR}/decrypted"
     LAST_SCAN_TIME=0
     
