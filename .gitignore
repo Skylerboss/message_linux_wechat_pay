@@ -1,0 +1,21 @@
+# 忽略文件
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.log
+.env
+.venv/
+venv/
+data/
+wechat-decrypt/
+.DS_Store
+*.swp
+*.swo
+*~
