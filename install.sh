@@ -309,26 +309,24 @@ main_menu() {
 
 # 检查是否已安装
 if [ -d "${INSTALL_DIR}" ] && [ -f "${INSTALL_DIR}/.version" ]; then
-    # 如果有命令行参数，直接执行对应操作
-    if [ -n "$1" ]; then
-        case $1 in
-            1|install)
-                check_docker
-                pull_image
-                setup_directories
-                create_env_file
-                create_compose_file
-                start_service ${COMPOSE_CMD}
-                save_version "${VERSION}"
-                show_status ${COMPOSE_CMD}
-                ;;
-            *)
-                echo "用法: bash install.sh [install]"
-                ;;
-        esac
-    else
-        main_menu
+    # 检测 docker compose 命令
+    if command -v docker-compose &> /dev/null; then
+        COMPOSE_CMD="docker-compose"
+    elif docker compose version &> /dev/null; then
+        COMPOSE_CMD="docker compose"
     fi
+    
+    # 非交互模式 - 直接执行安装
+    echo -e "${BLUE}📥 检查更新...${NC}"
+    pull_image
+    setup_directories
+    create_env_file
+    create_compose_file
+    
+    cd "${INSTALL_DIR}"
+    ${COMPOSE_CMD} up -d
+    echo -e "${GREEN}✅ 服务已更新重启${NC}"
+    show_status ${COMPOSE_CMD}
 else
     # 首次安装
     check_docker
