@@ -1,21 +1,7 @@
-# 忽略文件
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-*.so
-*.egg
-*.egg-info/
-dist/
-build/
-*.log
-.env
-.venv/
-venv/
-data/
-wechat-decrypt/
-.DS_Store
-*.swp
-*.swo
-*~
+# 忽略所有文件
+*
+
+# 只保留这些文件
+!install.sh
+!README.md
+!.gitignore
