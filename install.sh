@@ -59,6 +59,7 @@ cat > "${INSTALL_DIR}/.env" << ENVEOF
 CALLBACK_URL=${MESSAGE_BOT_URL}/api/payment/notify/linux_wechat
 CALLBACK_SECRET_KEY=${CALLBACK_SECRET}
 DECRYPT_PROJECT_DIR=/root/wechat-decrypt
+SESSION_DB_PATH=/root/wechat-decrypt/decrypted/session/session.db
 ENVEOF
 echo -e "${GREEN}✅ 配置文件创建完成${NC}"
 
@@ -85,6 +86,8 @@ services:
     environment:
       - CALLBACK_URL=${MESSAGE_BOT_URL}/api/payment/notify/linux_wechat
       - CALLBACK_SECRET_KEY=${CALLBACK_SECRET}
+      - DECRYPT_PROJECT_DIR=/root/wechat-decrypt
+      - SESSION_DB_PATH=/root/wechat-decrypt/decrypted/session/session.db
 
 networks:
   default:
