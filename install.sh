@@ -16,6 +16,9 @@ INSTALL_DIR="${WECHAT_INSTALL_DIR:-/root/linux_wechat_pay}"
 MESSAGE_BOT_URL="${MESSAGE_BOT_URL:-http://192.168.100.7:5000}"
 CALLBACK_SECRET="${CALLBACK_SECRET:-}"
 
+# Docker Compose 命令（全局变量）
+COMPOSE_CMD=""
+
 # 颜色输出
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -36,9 +39,16 @@ check_docker() {
         exit 1
     fi
     
-    if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
+    # 检查 docker compose（兼容新旧版本）
+    if command -v docker-compose &> /dev/null; then
+        COMPOSE_CMD="docker-compose"
+    elif docker compose version &> /dev/null; then
+        COMPOSE_CMD="docker compose"
+    else
         echo -e "${RED}❌ Docker Compose 未安装${NC}"
         echo "请先安装 Docker Compose:"
+        echo "  apt update && apt install -y docker-compose-plugin"
+        echo "或者安装 docker-compose:"
         echo "  pip3 install docker-compose"
         exit 1
     fi
@@ -115,12 +125,6 @@ create_compose_file() {
     local full_image="${REGISTRY}/${NAMESPACE}/${REPO_NAME}:latest"
     
     echo -e "${BLUE}📝 创建 docker-compose.yml${NC}"
-    
-    # 检测 docker compose 命令
-    COMPOSE_CMD="docker-compose"
-    if docker compose version &> /dev/null; then
-        COMPOSE_CMD="docker compose"
-    fi
     
     cat > "${INSTALL_DIR}/docker-compose.yml" << EOF
 version: '3.8'
@@ -221,8 +225,9 @@ uninstall_service() {
 # 主菜单
 main_menu() {
     # 检测 docker compose 命令
-    COMPOSE_CMD="docker-compose"
-    if docker compose version &> /dev/null; then
+    if command -v docker-compose &> /dev/null; then
+        COMPOSE_CMD="docker-compose"
+    elif docker compose version &> /dev/null; then
         COMPOSE_CMD="docker compose"
     fi
     
@@ -310,12 +315,6 @@ else
     setup_directories
     create_env_file
     create_compose_file
-    
-    # 检测 docker compose 命令
-    COMPOSE_CMD="docker-compose"
-    if docker compose version &> /dev/null; then
-        COMPOSE_CMD="docker compose"
-    fi
     
     start_service ${COMPOSE_CMD}
     save_version "${VERSION}"
