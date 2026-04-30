@@ -1,12 +1,30 @@
 #!/bin/bash
-# 检测是否在管道中执行且需要交互
-if [ ! -t 0 ] && [ -z "$1" ]; then
-    # 重新下载脚本并用 bash 执行（连接到终端）
-    bash -c 'curl -fsSL "https://raw.githubusercontent.com/Skylerboss/message_linux_wechat_pay/main/install.sh" -o /tmp/install.sh && bash /tmp/install.sh; rm -f /tmp/install.sh'
-    exit $?
+# Linux 微信支付回调系统一键安装脚本
+# 用法：
+#   curl ... | bash          -> 自动重新下载并进入交互菜单
+#   bash install.sh           -> 交互菜单
+#   bash install.sh install   -> 命令行模式
+
+# ============================================================
+# 管道检测：curl | bash 时 stdin 不是终端，重下脚本执行
+# ============================================================
+if [ ! -t 0 ]; then
+    if [ -z "$1" ]; then
+        curl -fsSL "https://raw.githubusercontent.com/Skylerboss/message_linux_wechat_pay/main/install.sh" -o /tmp/install.sh 2>/dev/null
+        if [ -s /tmp/install.sh ]; then
+            bash /tmp/install.sh
+            rm -f /tmp/install.sh
+        else
+            echo "错误: 无法下载脚本，请手动运行:"
+            echo "curl -fsSL https://raw.githubusercontent.com/Skylerboss/message_linux_wechat_pay/main/install.sh -o install.sh && bash install.sh"
+        fi
+        exit $?
+    fi
 fi
 
+# ============================================================
 # 配置
+# ============================================================
 NAMESPACE="${WECHAT_NAMESPACE:-skylerboss}"
 REPO_NAME="${WECHAT_REPO:-message_linux_wechat_pay}"
 REGISTRY="${WECHAT_REGISTRY:-registry.cn-hangzhou.aliyuncs.com}"
@@ -21,7 +39,6 @@ VNC_PASSWORD="${VNC_PASSWORD:-wechat123}"
 
 VERSION="1.0.5"
 
-# 颜色
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -33,15 +50,13 @@ full_image="${REGISTRY}/${NAMESPACE}/${REPO_NAME}:latest"
 
 COMPOSE_CMD="docker-compose"
 if ! command -v docker-compose &> /dev/null; then
-    if docker compose version &> /dev/null 2>&1; then
-        COMPOSE_CMD="docker compose"
-    fi
+    docker compose version &> /dev/null 2>&1 && COMPOSE_CMD="docker compose"
 fi
 
 install_service() {
     echo -e "${BLUE}[1/5] 拉取镜像...${NC}"
     docker pull "${full_image}" 2>/dev/null || echo -e "${YELLOW}使用现有镜像${NC}"
-    
+
     mkdir -p "${INSTALL_DIR}/logs" "${INSTALL_DIR}/data"
 
     cat > "${INSTALL_DIR}/.env" << ENVEOF
@@ -86,9 +101,8 @@ COMPOSEEOF
     SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
     echo -e "${GREEN}[OK] 安装完成 v${VERSION}${NC}"
     echo ""
-    echo "VNC: vnc://${SERVER_IP}:${VNC_PORT} 密码: ${VNC_PASSWORD}"
+    echo "VNC: vnc://${SERVER_IP}:${VNC_PORT}  密码: ${VNC_PASSWORD}"
     echo "Web: http://${SERVER_IP}:${NOVNC_PORT}/vnc.html"
-    echo "API: http://${SERVER_IP}:${API_PORT}"
     echo "日志: ${INSTALL_DIR}/logs/"
 }
 
@@ -118,8 +132,26 @@ view_status() {
     fi
 }
 
-show_menu() {
-    clear 2>/dev/null || echo ""
+# ============================================================
+# 命令行参数模式
+# ============================================================
+if [ "$1" != "" ]; then
+    case "$1" in
+        1|install) install_service ;;
+        2|stop)    stop_service ;;
+        3|restart) restart_service ;;
+        4|status)  view_status ;;
+        5|logs)    view_logs ;;
+        *) echo "用法: bash $0 [1-5|install|stop|restart|status|logs]" ;;
+    esac
+    exit 0
+fi
+
+# ============================================================
+# 交互菜单模式
+# ============================================================
+while true; do
+    echo ""
     echo -e "${CYAN}=== Linux 微信支付回调系统 v${VERSION} ===${NC}"
     echo ""
     echo "  1. 安装/更新服务"
@@ -129,24 +161,6 @@ show_menu() {
     echo "  5. 查看日志"
     echo "  0. 退出"
     echo ""
-}
-
-# 命令行参数处理
-if [ "$1" != "" ]; then
-    case "$1" in
-        1|install) install_service ;;
-        2|stop) stop_service ;;
-        3|restart) restart_service ;;
-        4|status) view_status ;;
-        5|logs) view_logs ;;
-        *) echo "用法: $0 [1-5|install|stop|restart|status|logs]" ;;
-    esac
-    exit 0
-fi
-
-# 交互菜单
-while true; do
-    show_menu
     printf "请选择 [0-5]: "
     read choice
     case "$choice" in
@@ -159,5 +173,6 @@ while true; do
         *) echo -e "${RED}无效选择${NC}" ;;
     esac
     echo ""
-    read -p "按回车继续..." dummy 2>/dev/null || true
+    printf "按回车继续..."
+    read dummy
 done
