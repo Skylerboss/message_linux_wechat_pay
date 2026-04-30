@@ -58,8 +58,9 @@ echo -e "${BLUE}📝 创建 .env 配置文件${NC}"
 cat > "${INSTALL_DIR}/.env" << ENVEOF
 CALLBACK_URL=${MESSAGE_BOT_URL}/api/payment/notify/linux_wechat
 CALLBACK_SECRET_KEY=${CALLBACK_SECRET}
-DECRYPT_PROJECT_DIR=/root/wechat-decrypt
-SESSION_DB_PATH=/root/wechat-decrypt/decrypted/session/session.db
+DECRYPT_PROJECT_DIR=/app/wechat-decrypt
+SESSION_DB_PATH=/app/wechat-decrypt/decrypted/session/session.db
+LOG_LEVEL=INFO
 ENVEOF
 echo -e "${GREEN}✅ 配置文件创建完成${NC}"
 
@@ -79,15 +80,12 @@ services:
       - "${NOVNC_PORT}:6080"
       - "${API_PORT}:8888"
     volumes:
-      - ./wechat-decrypt:/root/wechat-decrypt
       - ./data:/root/.config/QQ
     env_file:
       - .env
     environment:
       - CALLBACK_URL=${MESSAGE_BOT_URL}/api/payment/notify/linux_wechat
       - CALLBACK_SECRET_KEY=${CALLBACK_SECRET}
-      - DECRYPT_PROJECT_DIR=/root/wechat-decrypt
-      - SESSION_DB_PATH=/root/wechat-decrypt/decrypted/session/session.db
 
 networks:
   default:
