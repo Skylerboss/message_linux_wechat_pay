@@ -159,6 +159,8 @@ fi
 while true; do
     show_menu
     read choice
+    # 清理输入：移除所有空白字符
+    choice=$(echo "$choice" | tr -d '[:space:]')
     case "$choice" in
         1) install_service ;;
         2) stop_service ;;
