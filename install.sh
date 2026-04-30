@@ -18,7 +18,7 @@ NOVNC_PORT="${NOVNC_PORT:-6080}"
 API_PORT="${API_PORT:-8888}"
 VNC_PASSWORD="${VNC_PASSWORD:-wechat123}"
 
-VERSION="1.0.0"
+VERSION="1.0.1"
 
 # 颜色
 RED='\033[0;31m'
@@ -49,8 +49,8 @@ echo -e "${GREEN}✅ 镜像拉取成功${NC}"
 
 # 创建目录
 echo -e "${BLUE}📁 设置安装目录: ${INSTALL_DIR}${NC}"
-mkdir -p "${INSTALL_DIR}"
-mkdir -p "${INSTALL_DIR}/wechat-decrypt"
+mkdir -p "${INSTALL_DIR}/logs"
+mkdir -p "${INSTALL_DIR}/data"
 echo -e "${GREEN}✅ 目录创建完成${NC}"
 
 # 创建 .env
@@ -80,6 +80,8 @@ services:
       - "${NOVNC_PORT}:6080"
       - "${API_PORT}:8888"
     volumes:
+      - /root/Documents:/root/Documents
+      - ./logs:/var/log/supervisor
       - ./data:/root/.config/QQ
     env_file:
       - .env
@@ -134,7 +136,13 @@ Linux 微信支付回调系统 - 访问说明
 - noVNC Web: ${NOVNC_PORT}
 - API: ${API_PORT}
 
-【日志查看】
+【日志查看】（宿主机查看）
+- cd ${INSTALL_DIR}/logs
+- callback.log - 主程序日志
+- callback_err.log - 错误日志
+- auto-decrypt.log - 自动解密日志
+
+【Docker 日志】
 - docker logs -f linux-wechat-pay
 
 【服务管理】
@@ -170,7 +178,9 @@ echo -e "${GREEN}密码:${NC} ${VNC_PASSWORD}"
 echo -e "${GREEN}Web 访问:${NC} http://${SERVER_IP}:${NOVNC_PORT}/vnc.html"
 echo -e "${GREEN}API 地址:${NC} http://${SERVER_IP}:${API_PORT}"
 echo ""
-echo -e "${GREEN}查看日志:${NC} docker logs -f linux-wechat-pay"
+echo -e "${GREEN}日志目录:${NC} ${INSTALL_DIR}/logs"
+echo -e "${GREEN}查看日志:${NC} cat ${INSTALL_DIR}/logs/callback.log"
+echo ""
 echo -e "${GREEN}停止服务:${NC} cd ${INSTALL_DIR} && ${COMPOSE_CMD} down"
 echo ""
 echo -e "${YELLOW}详细说明见:${NC} ${INSTALL_DIR}/README.txt"
