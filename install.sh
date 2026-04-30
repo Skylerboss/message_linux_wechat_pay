@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*-
 # Linux 微信支付回调系统一键安装脚本
 
-set -e
-
 # 配置
 NAMESPACE="${WECHAT_NAMESPACE:-skylerboss}"
 REPO_NAME="${WECHAT_REPO:-message_linux_wechat_pay}"
@@ -12,15 +10,13 @@ INSTALL_DIR="${WECHAT_INSTALL_DIR:-/root/linux_wechat_pay}"
 MESSAGE_BOT_URL="${MESSAGE_BOT_URL:-http://192.168.100.7:5000}"
 CALLBACK_SECRET="${CALLBACK_SECRET:-}"
 
-# VNC 配置（可自定义）
 VNC_PORT="${VNC_PORT:-5901}"
 NOVNC_PORT="${NOVNC_PORT:-6080}"
 API_PORT="${API_PORT:-8888}"
 VNC_PASSWORD="${VNC_PASSWORD:-wechat123}"
 
-VERSION="1.0.1"
+VERSION="1.0.2"
 
-# 颜色
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -28,12 +24,8 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-echo -e "${CYAN}╔═══════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║   Linux 微信支付回调系统 v${VERSION}        ║${NC}"
-echo -e "${CYAN}╚═══════════════════════════════════════════╝${NC}"
-echo ""
+full_image="${REGISTRY}/${NAMESPACE}/${REPO_NAME}:latest"
 
-# 检测 docker compose
 COMPOSE_CMD="docker-compose"
 if ! command -v docker-compose &> /dev/null; then
     if docker compose version &> /dev/null 2>&1; then
@@ -41,32 +33,28 @@ if ! command -v docker-compose &> /dev/null; then
     fi
 fi
 
-# 拉取镜像
-full_image="${REGISTRY}/${NAMESPACE}/${REPO_NAME}:latest"
-echo -e "${BLUE}📥 拉取镜像: ${full_image}${NC}"
-docker pull "${full_image}"
-echo -e "${GREEN}✅ 镜像拉取成功${NC}"
+install_service() {
+    echo -e "${CYAN}╔═══════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║   Linux 微信支付回调系统 v${VERSION}        ║${NC}"
+    echo -e "${CYAN}╚═══════════════════════════════════════════╝${NC}"
+    echo ""
 
-# 创建目录
-echo -e "${BLUE}📁 设置安装目录: ${INSTALL_DIR}${NC}"
-mkdir -p "${INSTALL_DIR}/logs"
-mkdir -p "${INSTALL_DIR}/data"
-echo -e "${GREEN}✅ 目录创建完成${NC}"
+    echo -e "${BLUE}📥 拉取镜像: ${full_image}${NC}"
+    docker pull "${full_image}" 2>/dev/null || echo -e "${YELLOW}使用现有镜像${NC}"
+    echo -e "${GREEN}✅ 镜像拉取成功${NC}"
 
-# 创建 .env
-echo -e "${BLUE}📝 创建 .env 配置文件${NC}"
-cat > "${INSTALL_DIR}/.env" << ENVEOF
+    mkdir -p "${INSTALL_DIR}/logs"
+    mkdir -p "${INSTALL_DIR}/data"
+
+    cat > "${INSTALL_DIR}/.env" << ENVEOF
 CALLBACK_URL=${MESSAGE_BOT_URL}/api/payment/notify/linux_wechat
 CALLBACK_SECRET_KEY=${CALLBACK_SECRET}
 DECRYPT_PROJECT_DIR=/app/wechat-decrypt
 SESSION_DB_PATH=/app/wechat-decrypt/decrypted/session/session.db
 LOG_LEVEL=INFO
 ENVEOF
-echo -e "${GREEN}✅ 配置文件创建完成${NC}"
 
-# 创建 docker-compose.yml
-echo -e "${BLUE}📝 创建 docker-compose.yml${NC}"
-cat > "${INSTALL_DIR}/docker-compose.yml" << COMPOSEEOF
+    cat > "${INSTALL_DIR}/docker-compose.yml" << COMPOSEEOF
 version: '3.8'
 
 services:
@@ -94,94 +82,94 @@ networks:
     driver: bridge
 COMPOSEEOF
 
-# 保存端口配置
-cat > "${INSTALL_DIR}/.ports" << PORTSEOF
-VNC_PORT=${VNC_PORT}
-NOVNC_PORT=${NOVNC_PORT}
-API_PORT=${API_PORT}
-VNC_PASSWORD=${VNC_PASSWORD}
-PORTSEOF
-echo -e "${GREEN}✅ docker-compose.yml 创建完成${NC}"
+    cd "${INSTALL_DIR}"
+    ${COMPOSE_CMD} up -d
+    echo "${VERSION}" > "${INSTALL_DIR}/.version"
 
-# 启动服务
-echo -e "${BLUE}🚀 启动服务...${NC}"
-cd "${INSTALL_DIR}"
-${COMPOSE_CMD} up -d
-echo -e "${GREEN}✅ 服务启动成功${NC}"
+    SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
+    echo ""
+    echo -e "${GREEN}✅ 服务启动成功${NC}"
+    echo ""
+    echo -e "📁 安装目录: ${INSTALL_DIR}"
+    echo -e "${GREEN}VNC 访问:${NC} vnc://${SERVER_IP}:${VNC_PORT}"
+    echo -e "${GREEN}Web 访问:${NC} http://${SERVER_IP}:${NOVNC_PORT}/vnc.html"
+    echo -e "${GREEN}日志目录:${NC} ${INSTALL_DIR}/logs"
+}
 
-# 保存版本
-echo "${VERSION}" > "${INSTALL_DIR}/.version"
+stop_service() {
+    cd "${INSTALL_DIR}" 2>/dev/null && ${COMPOSE_CMD} down
+    echo -e "${GREEN}✅ 服务已停止${NC}"
+}
 
-# 创建访问说明
-SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
-cat > "${INSTALL_DIR}/README.txt" << READMEEOF
-============================================
-Linux 微信支付回调系统 - 访问说明
-============================================
+restart_service() {
+    cd "${INSTALL_DIR}" 2>/dev/null && ${COMPOSE_CMD} restart
+    echo -e "${GREEN}✅ 服务已重启${NC}"
+}
 
-【VNC 远程桌面】
-- 地址: vnc://${SERVER_IP}:${VNC_PORT}
-- 密码: ${VNC_PASSWORD}
+view_logs() {
+    if [ -d "${INSTALL_DIR}/logs" ]; then
+        echo -e "${CYAN}=== 日志目录: ${INSTALL_DIR}/logs ===${NC}"
+        ls -la "${INSTALL_DIR}/logs/"
+        echo ""
+        echo -e "${CYAN}=== callback_err.log ===${NC}"
+        tail -30 "${INSTALL_DIR}/logs/callback_err.log" 2>/dev/null || echo "暂无日志"
+    else
+        echo -e "${RED}日志目录不存在${NC}"
+    fi
+}
 
-【Web 浏览器访问】
-- 地址: http://${SERVER_IP}:${NOVNC_PORT}/vnc.html
-- 点击 "Connect" 按钮连接
+view_status() {
+    if docker ps 2>/dev/null | grep -q linux-wechat-pay; then
+        echo -e "${GREEN}● 服务状态: 运行中${NC}"
+        docker ps --filter "name=linux-wechat-pay" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+    else
+        echo -e "${RED}● 服务状态: 未运行${NC}"
+    fi
+}
 
-【API 接口】
-- 地址: http://${SERVER_IP}:${API_PORT}
-- 健康检查: http://${SERVER_IP}:${API_PORT}/health
+show_menu() {
+    echo ""
+    echo -e "${CYAN}╔═══════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║   Linux 微信支付回调系统 v${VERSION}        ║${NC}"
+    echo -e "${CYAN}╚═══════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "  ${GREEN}1${NC}. 安装/更新服务"
+    echo -e "  ${GREEN}2${NC}. 停止服务"
+    echo -e "  ${GREEN}3${NC}. 重启服务"
+    echo -e "  ${GREEN}4${NC}. 查看状态"
+    echo -e "  ${GREEN}5${NC}. 查看日志"
+    echo -e "  ${GREEN}6${NC}. 访问 VNC"
+    echo -e "  ${GREEN}0${NC}. 退出"
+    echo ""
+    echo -n "请选择操作 [0-6]: "
+}
 
-【端口配置】
-- VNC: ${VNC_PORT}
-- noVNC Web: ${NOVNC_PORT}
-- API: ${API_PORT}
+if [ "$1" != "" ]; then
+    case "$1" in
+        1|install) install_service ;;
+        2|stop) stop_service ;;
+        3|restart) restart_service ;;
+        4|status) view_status ;;
+        5|logs) view_logs ;;
+        *) echo "用法: $0 或 $0 {1-6}" ;;
+    esac
+    exit 0
+fi
 
-【日志查看】（宿主机查看）
-- cd ${INSTALL_DIR}/logs
-- callback.log - 主程序日志
-- callback_err.log - 错误日志
-- auto-decrypt.log - 自动解密日志
-
-【Docker 日志】
-- docker logs -f linux-wechat-pay
-
-【服务管理】
-- 启动: cd ${INSTALL_DIR} && docker-compose up -d
-- 停止: cd ${INSTALL_DIR} && docker-compose down
-- 重启: cd ${INSTALL_DIR} && docker-compose restart
-
-【配置修改】
-- 编辑: vim ${INSTALL_DIR}/.env
-
-============================================
-
-自定义端口示例:
-  VNC_PORT=5901 NOVNC_PORT=6080 API_PORT=8888 curl -L ... | bash
-
-自定义密码示例:
-  VNC_PASSWORD=yourpassword curl -L ... | bash
-============================================
-READMEEOF
-
-# 显示状态
-SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
-echo ""
-echo -e "${CYAN}========================================${NC}"
-echo -e "${CYAN}  Linux 微信支付回调系统 安装完成${NC}"
-echo -e "${CYAN}========================================${NC}"
-echo ""
-echo -e "📦 镜像: ${full_image}"
-echo -e "📁 安装目录: ${INSTALL_DIR}"
-echo ""
-echo -e "${GREEN}VNC 访问:${NC} vnc://${SERVER_IP}:${VNC_PORT}"
-echo -e "${GREEN}密码:${NC} ${VNC_PASSWORD}"
-echo -e "${GREEN}Web 访问:${NC} http://${SERVER_IP}:${NOVNC_PORT}/vnc.html"
-echo -e "${GREEN}API 地址:${NC} http://${SERVER_IP}:${API_PORT}"
-echo ""
-echo -e "${GREEN}日志目录:${NC} ${INSTALL_DIR}/logs"
-echo -e "${GREEN}查看日志:${NC} cat ${INSTALL_DIR}/logs/callback.log"
-echo ""
-echo -e "${GREEN}停止服务:${NC} cd ${INSTALL_DIR} && ${COMPOSE_CMD} down"
-echo ""
-echo -e "${YELLOW}详细说明见:${NC} ${INSTALL_DIR}/README.txt"
-echo ""
+while true; do
+    show_menu
+    read choice
+    case "$choice" in
+        1) install_service ;;
+        2) stop_service ;;
+        3) restart_service ;;
+        4) view_status ;;
+        5) view_logs ;;
+        6)
+            SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
+            echo "VNC 地址: http://${SERVER_IP}:${NOVNC_PORT}/vnc.html"
+            ;;
+        0) echo "再见!"; exit 0 ;;
+        *) echo "无效选择，请重试" ;;
+    esac
+done
