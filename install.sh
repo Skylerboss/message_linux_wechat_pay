@@ -29,7 +29,8 @@ NAMESPACE="${WECHAT_NAMESPACE:-skylerboss}"
 REPO_NAME="${WECHAT_REPO:-message_linux_wechat_pay}"
 REGISTRY="${WECHAT_REGISTRY:-registry.cn-hangzhou.aliyuncs.com}"
 INSTALL_DIR="${WECHAT_INSTALL_DIR:-/root/linux_wechat_pay}"
-MESSAGE_BOT_URL="${MESSAGE_BOT_URL:-http://192.168.100.7:5000}"
+DEFAULT_MESSAGE_BOT_URL="http://192.168.100.7:5000"
+MESSAGE_BOT_URL="${MESSAGE_BOT_URL:-$DEFAULT_MESSAGE_BOT_URL}"
 CALLBACK_SECRET="${CALLBACK_SECRET:-}"
 
 VNC_PORT="${VNC_PORT:-5901}"
@@ -53,7 +54,54 @@ if ! command -v docker-compose &> /dev/null; then
     docker compose version &> /dev/null 2>&1 && COMPOSE_CMD="docker compose"
 fi
 
+show_callback_notice() {
+    echo ""
+    echo -e "${YELLOW}重要提示：请先配置回调地址再安装/更新服务${NC}"
+    echo "  当前 Message Bot 地址: ${MESSAGE_BOT_URL}"
+    echo "  最终回调地址: ${MESSAGE_BOT_URL}/api/payment/notify/linux_wechat"
+    echo "  该地址必须是本机容器可以访问到的 Message Bot 服务地址。"
+    echo "  如果仍是默认 ${DEFAULT_MESSAGE_BOT_URL}，通常需要改成你的服务器实际 IP 和端口。"
+    echo "  示例: http://你的服务器IP:5000"
+    echo ""
+}
+
+configure_callback_url() {
+    local input_url=""
+
+    show_callback_notice
+
+    if [ ! -t 0 ]; then
+        if [ "${MESSAGE_BOT_URL}" = "${DEFAULT_MESSAGE_BOT_URL}" ]; then
+            echo -e "${RED}错误: 当前仍使用默认回调地址，请先设置 MESSAGE_BOT_URL 后再运行。${NC}"
+            echo "示例: MESSAGE_BOT_URL=http://你的服务器IP:5000 bash install.sh install"
+            exit 1
+        fi
+        return 0
+    fi
+
+    while true; do
+        printf "请输入 Message Bot 地址 [当前: %s]: " "${MESSAGE_BOT_URL}"
+        read input_url
+        [ -n "${input_url}" ] && MESSAGE_BOT_URL="${input_url}"
+
+        if [ "${MESSAGE_BOT_URL}" = "${DEFAULT_MESSAGE_BOT_URL}" ]; then
+            echo -e "${YELLOW}当前仍是默认地址，可能无法正常回调。${NC}"
+            printf "确认继续使用默认地址？[y/N]: "
+            read confirm_default
+            [[ "${confirm_default}" =~ ^[yY]$ ]] && break
+            continue
+        fi
+
+        case "${MESSAGE_BOT_URL}" in
+            http://*|https://*) break ;;
+            *) echo -e "${RED}地址必须以 http:// 或 https:// 开头${NC}" ;;
+        esac
+    done
+}
+
 install_service() {
+    configure_callback_url
+
     echo -e "${BLUE}[1/5] 拉取镜像...${NC}"
     docker pull "${full_image}" 2>/dev/null || echo -e "${YELLOW}使用现有镜像${NC}"
 
@@ -153,6 +201,11 @@ fi
 while true; do
     echo ""
     echo -e "${CYAN}=== Linux 微信支付回调系统 v${VERSION} ===${NC}"
+    if [ "${MESSAGE_BOT_URL}" = "${DEFAULT_MESSAGE_BOT_URL}" ]; then
+        echo -e "${YELLOW}提示: 当前仍使用默认回调地址 ${MESSAGE_BOT_URL}，安装前请先改成实际服务器 IP 和端口。${NC}"
+    else
+        echo -e "${GREEN}当前回调服务: ${MESSAGE_BOT_URL}${NC}"
+    fi
     echo ""
     echo "  1. 安装/更新服务"
     echo "  2. 停止服务"
